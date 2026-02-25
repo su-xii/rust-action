@@ -8,7 +8,7 @@ on:
       - 'v*'
 jobs:
   build:
-    name: build
+    name: ${{ matrix.build }}-build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -71,42 +71,27 @@ jobs:
           path: archive/${{ matrix.archive-name }}
 
   release:
-    needs: build # 等待上面的 build 完成
+    needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') # 只有在 tag 事件下才执行
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
 
-      - name: Rename and Move Files
+      - name: Organize Files
         run: |
-          # 创建一个干净的发布目录
-          mkdir final
-          # 遍历下载的所有文件，把它们移动到最终目录并重命名（去掉下载时的目录结构）
-          for file in dist/*/*; do
-            mv "$file" "final/"
-          done
+          mkdir -p release-assets
+          # 移动所有文件到发布目录
+          find dist -type f -exec mv {} release-assets/ \;
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }} # 使用推送上来的标签名作为 Release 的 tag
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Binaries to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # 这里使用通配符上传 final 目录下的所有文件
-          asset_path: final/
-
-
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          # 上传发布目录下的所有文件
+          files: release-assets/*
