@@ -27,28 +27,32 @@ jobs:
       fail-fast: false
 
     steps:
-      # 升级 checkout 到 v4
+      # 1. 保持 checkout v4
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 使用 actions-rs/toolchain 的 v2 版本，它修复了弃用问题
+      # 2. 修复关键错误：使用具体的 toolchain 版本
+      # 注意：这里使用 v1.0.8 (或 v1.0.7)，而不是不存在的 setup-rust，也不是旧版的 v1
       - name: Install Rust
-        uses: actions-rs/toolchain@v2
+        uses: actions-rs/toolchain@v1.0.8 # ✅ 关键修复点
         with:
           toolchain: ${{ matrix.rust }}
-          profile: minimal
-          override: true
           target: ${{ matrix.target }}
+          # 建议添加 profile: minimal 以加快安装速度
+          profile: minimal
 
+      # 3. 保持构建步骤
       - name: Build binary
         run: cargo build --verbose --release --target ${{ matrix.target }}
         env:
           RUST_BACKTRACE: 1
 
+      # 4. 剥离调试信息 (非 Windows)
       - name: Strip binary (linux and macos)
         if: matrix.build == 'linux' || matrix.build == 'macos'
         run: strip "target/${{ matrix.target }}/release/sgf-render"
 
+      # 5. 打包
       - name: Build archive
         shell: bash
         run: |
@@ -63,7 +67,7 @@ jobs:
             tar -czf "${{ matrix.archive-name }}" LICENSE README.md sgf-render
           fi
       
-      # 升级 upload-artifact 到 v4
+      # 6. 保持 upload-artifact v4
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
