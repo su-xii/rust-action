@@ -1,5 +1,5 @@
 name: Build and Release
-# === 1. 全局权限声明 (关键) ===
+# === 全局权限声明 ===
 permissions:
   contents: write
 
@@ -21,17 +21,17 @@ jobs:
             os: ubuntu-latest
             rust: nightly
             target: x86_64-unknown-linux-musl
-            archive-name: rust-action-linux.tar.gz
+            archive-name: $-linux.tar.gz
           - build: macos
             os: macos-latest
             rust: nightly
             target: x86_64-apple-darwin
-            archive-name: rust-action-macos.tar.gz
+            archive-name: $-macos.tar.gz
           - build: windows
             os: windows-latest
             rust: nightly-x86_64-msvc
             target: x86_64-pc-windows-msvc
-            archive-name: rust-action-windows.7z
+            archive-name: $-windows.7z
       fail-fast: false
 
     steps:
@@ -44,7 +44,7 @@ jobs:
           toolchain: $
           profile: minimal
           override: true
-          target: ${{ matrix.target }}
+          target: $
 
       - name: Build binary
         run: cargo build --verbose --release --target ${{ matrix.target }}
@@ -53,7 +53,7 @@ jobs:
 
       - name: Strip binary (linux and macos)
         if: matrix.build == 'linux' || matrix.build == 'macos'
-        run: strip "target/${{ matrix.target }}/release/rust-action"
+        run: strip "target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}"
 
       - name: Build archive
         shell: bash
@@ -61,11 +61,11 @@ jobs:
           mkdir archive
           cd archive
           if [ "${{ matrix.build }}" = "windows" ]; then
-            cp "../target/${{ matrix.target }}/release/rust-action.exe" ./
-            7z a "${{ matrix.archive-name }}" rust-action.exe
+            cp "../target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}.exe" ./
+            7z a "${{ matrix.archive-name }}" ${{ env.PROJECT_NAME }}.exe
           else
-            cp "../target/${{ matrix.target }}/release/rust-action" ./
-            tar -czf "${{ matrix.archive-name }}" rust-action
+            cp "../target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}" ./
+            tar -czf "${{ matrix.archive-name }}" ${{ env.PROJECT_NAME }}
           fi
 
       - name: Upload archive
@@ -74,11 +74,14 @@ jobs:
           name: ${{ matrix.archive-name }}
           path: archive/${{ matrix.archive-name }}
 
+  # =============================
+  # RELEASE JOB (修复后的部分)
+  # =============================
   release:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    # === 2. Job 级别权限声明 (双重保险) ===
+    # Job 级别权限 (双重保险)
     permissions:
       contents: write
     steps:
@@ -90,14 +93,13 @@ jobs:
       - name: Organize Files
         run: |
           mkdir -p release-assets
-          # 移动所有文件
+          # 将所有下载的文件移动到统一目录
           find dist -type f -exec mv {} release-assets/ \;
 
-      - name: Create Release with Assets
-        # === 3. 使用正确的 Action (关键修复) ===
+      - name: Create Release & Upload Assets
+        # 使用社区标准动作，它能完美处理上传逻辑
         uses: softprops/action-gh-release@v2
         env:
-          # 使用系统自带的 Token，上面的 permissions 已经赋予了它写入权
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
