@@ -1,4 +1,5 @@
 name: Build and Release
+
 # === 关键：赋予工作流写入权限 ===
 permissions:
   contents: write
@@ -10,9 +11,12 @@ on:
       - 'v*'
 
 jobs:
+  # ==========================
+  # 1. 构建 Job (矩阵并行)
+  # ==========================
   build:
-    name: $-build
-    runs-on: $
+    name: ${{ matrix.build }}-build
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         build: [linux, macos, windows]
@@ -36,18 +40,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4  # 建议升级到 v4
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: $
+          toolchain: ${{ matrix.rust }}
           profile: minimal
           override: true
-          target: $
+          target: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --verbose --release --target $
+        run: cargo build --verbose --release --target ${{ matrix.target }}
 
       - name: Strip (Linux/Mac)
         if: matrix.build == 'linux' || matrix.build == 'macos'
@@ -71,27 +75,52 @@ jobs:
         with:
           name: ${{ matrix.archive-name }}
           path: archive/${{ matrix.archive-name }}
+          # 可选：保留期限，默认90天
+          retention-days: 5 
 
+  # ==========================
+  # 2. 发布 Job (串行，依赖构建完成)
+  # ==========================
   release:
-    needs: build
+    name: Create Release
+    needs: build  # 关键：等待所有 build 任务完成
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    # === 关键：再次确保权限 ===
-    permissions:
-      contents: write
+    
     steps:
-      - name: Download All
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 步骤 A: 下载所有构建产物
+      # download-artifact v4 会将每个 artifact 下载到以 artifact name 命名的文件夹中
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./dist
+          path: downloaded_artifacts
+          # 如果不指定 pattern，默认下载当前 workflow 运行产生的所有 artifact
+          # 如果需要精确匹配，可以使用 pattern: 'rust-action-*'
 
-      - name: Create Release
-        # === 核心修复：使用这个 Action，不要用 actions/create-release ===
+      # 调试：查看下载后的文件结构 (可选，失败时很有用)
+      - name: List downloaded files
+        run: ls -R downloaded_artifacts
+
+      # 步骤 B: 上传到 GitHub Release
+      - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
+        with:
+          # 指定要上传的文件路径
+          # 这里使用通配符匹配所有下载下来的压缩包
+          files: downloaded_artifacts/**/*.tar.gz
+          
+          # 如果 windows 的 .7z 也需要上传，可以追加一行或使用更宽泛的通配符：
+          # files: |
+          #   downloaded_artifacts/**/*.tar.gz
+          #   downloaded_artifacts/**/*.7z
+          
+          # 或者直接使用 **/* 上传所有文件（如果目录下只有这些包）
+          # files: downloaded_artifacts/**/*
+          
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          # 自动上传 dist 目录下所有的文件
-          files: dist/**/*
