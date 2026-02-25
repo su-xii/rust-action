@@ -35,7 +35,7 @@ jobs:
             os: windows-latest
             rust: nightly-x86_64-msvc
             target: x86_64-pc-windows-msvc
-            archive-name: rust-action-windows.7z
+            archive-name: rust-action-windows.tar.gz
       fail-fast: false
 
     steps:
