@@ -1,21 +1,10 @@
 name: build
-# === 定义全局变量 ===
-env:
-  # 核心：修改这里即可全局替换项目名
-  PROJECT_NAME: rust-action 
-  
-  # 可选：定义归档后缀，便于维护
-  LINUX_ARCHIVE_EXT: tar.gz
-  WINDOWS_ARCHIVE_EXT: 7z
-  MACOS_ARCHIVE_EXT: tar.gz
-
 on:
   workflow_dispatch: {}
-
 jobs:
   build:
     name: build
-    runs-on: $
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         build: [linux, macos, windows]
@@ -24,18 +13,17 @@ jobs:
             os: ubuntu-latest
             rust: nightly
             target: x86_64-unknown-linux-musl
-            # === 归档名使用变量拼接 ===
-            archive-name: ${{ env.PROJECT_NAME }}-linux.${{ env.LINUX_ARCHIVE_EXT }}
+            archive-name: rust-action-linux.tar.gz
           - build: macos
             os: macos-latest
             rust: nightly
             target: x86_64-apple-darwin
-            archive-name: ${{ env.PROJECT_NAME }}-macos.${{ env.MACOS_ARCHIVE_EXT }}
+            archive-name: rust-action-macos.tar.gz
           - build: windows
             os: windows-latest
             rust: nightly-x86_64-msvc
             target: x86_64-pc-windows-msvc
-            archive-name: ${{ env.PROJECT_NAME }}-windows.${{ env.WINDOWS_ARCHIVE_EXT }}
+            archive-name: rust-action-windows.7z
       fail-fast: false
 
     steps:
@@ -57,8 +45,7 @@ jobs:
 
       - name: Strip binary (linux and macos)
         if: matrix.build == 'linux' || matrix.build == 'macos'
-        # === 使用变量 ===
-        run: strip "target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}"
+        run: strip "target/${{ matrix.target }}/release/rust-action"
 
       - name: Build archive
         shell: bash
@@ -66,16 +53,15 @@ jobs:
           mkdir archive
           cd archive
           if [ "${{ matrix.build }}" = "windows" ]; then
-            # Windows 下文件名带 .exe 后缀
-            cp "../target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}.exe" ./
-            7z a "${{ matrix.archive-name }}" ${{ env.PROJECT_NAME }}.exe
+            cp "../target/${{ matrix.target }}/release/rust-action.exe" ./
+            7z a "${{ matrix.archive-name }}" rust-action.exe
           else
-            cp "../target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}" ./
-            tar -czf "${{ matrix.archive-name }}" ${{ env.PROJECT_NAME }}
+            cp "../target/${{ matrix.target }}/release/rust-action" ./
+            tar -czf "${{ matrix.archive-name }}" rust-action
           fi
-
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.archive-name }}
           path: archive/${{ matrix.archive-name }}
+
