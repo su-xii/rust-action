@@ -10,7 +10,7 @@ jobs:
         build: [linux, macos, windows]
         include:
           - build: linux
-            os: ubuntu-18.04
+            os: ubuntu-latest
             rust: nightly
             target: x86_64-unknown-linux-musl
             archive-name: rust-action-linux.tar.gz
@@ -20,7 +20,7 @@ jobs:
             target: x86_64-apple-darwin
             archive-name: rust-action-macos.tar.gz
           - build: windows
-            os: windows-2019
+            os: windows-latest
             rust: nightly-x86_64-msvc
             target: x86_64-pc-windows-msvc
             archive-name: rust-action-windows.7z
