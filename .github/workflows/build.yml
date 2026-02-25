@@ -31,13 +31,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. 升级 toolchain 到 v1.1.8 (这是一个兼容新版环境的稳定版本)
+      # 2. 使用 actions-rs/setup-rust@v1 替代旧的 toolchain
+      # 它是 actions-rs/toolchain 的继任者，支持新版 Actions 命令
       - name: Install Rust
-        uses: actions-rs/toolchain@v1.1.8
+        uses: actions-rs/setup-rust@v1
         with:
           toolchain: ${{ matrix.rust }}
-          profile: minimal
-          override: true
           target: ${{ matrix.target }}
 
       - name: Build binary
