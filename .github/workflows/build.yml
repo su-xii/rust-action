@@ -2,7 +2,7 @@ name: build
 # === 定义全局变量 ===
 env:
   # 核心：修改这里即可全局替换项目名
-  PROJECT_NAME: rust-action
+  PROJECT_NAME: rust-action 
   
   # 可选：定义归档后缀，便于维护
   LINUX_ARCHIVE_EXT: tar.gz
@@ -13,9 +13,8 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  # === Job 名字也使用变量 ===
   build:
-    name: ${{ env.PROJECT_NAME }}-build
+    name: build
     runs-on: $
     strategy:
       matrix:
