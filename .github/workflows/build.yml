@@ -1,15 +1,18 @@
-name: build
+name: Build and Release
+# === 1. 全局权限声明 (关键) ===
 permissions:
   contents: write
+
 on:
   workflow_dispatch: {}
   push:
     tags:
       - 'v*'
+
 jobs:
   build:
-    name: ${{ matrix.build }}-build
-    runs-on: ${{ matrix.os }}
+    name: $-build
+    runs-on: $
     strategy:
       matrix:
         build: [linux, macos, windows]
@@ -38,7 +41,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: $
           profile: minimal
           override: true
           target: ${{ matrix.target }}
@@ -64,6 +67,7 @@ jobs:
             cp "../target/${{ matrix.target }}/release/rust-action" ./
             tar -czf "${{ matrix.archive-name }}" rust-action
           fi
+
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
@@ -74,8 +78,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    # === 2. Job 级别权限声明 (双重保险) ===
+    permissions:
+      contents: write
     steps:
-      - name: Download All Artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
@@ -83,15 +90,17 @@ jobs:
       - name: Organize Files
         run: |
           mkdir -p release-assets
-          # 移动所有文件到发布目录
+          # 移动所有文件
           find dist -type f -exec mv {} release-assets/ \;
 
-      - name: Publish Release
+      - name: Create Release with Assets
+        # === 3. 使用正确的 Action (关键修复) ===
         uses: softprops/action-gh-release@v2
         env:
+          # 使用系统自带的 Token，上面的 permissions 已经赋予了它写入权
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
-          # 上传发布目录下的所有文件
-          files: release-assets/*
+          # 上传所有文件
+          files: release-assets/**
