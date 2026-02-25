@@ -54,10 +54,10 @@ jobs:
           cp LICENSE README.md archive/
           cd archive
           if [ "${{ matrix.build }}" = "windows" ]; then
-            cp "../target/${{ matrix.target }}/release/sgf-render.exe" ./
+            cp "../target/${{ matrix.target }}/release/rust-action.exe" ./
             7z a "${{ matrix.archive-name }}" LICENSE README.md sgf-render.exe
           else
-            cp "../target/${{ matrix.target }}/release/sgf-render" ./
+            cp "../target/${{ matrix.target }}/release/rust-action" ./
             tar -czf "${{ matrix.archive-name }}" LICENSE README.md sgf-render
           fi
       - name: Upload archive
