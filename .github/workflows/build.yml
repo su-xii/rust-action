@@ -55,10 +55,10 @@ jobs:
           cd archive
           if [ "${{ matrix.build }}" = "windows" ]; then
             cp "../target/${{ matrix.target }}/release/rust-action.exe" ./
-            7z a "${{ matrix.archive-name }}" LICENSE README.md sgf-render.exe
+            7z a "${{ matrix.archive-name }}" LICENSE README.md rust-action.exe
           else
             cp "../target/${{ matrix.target }}/release/rust-action" ./
-            tar -czf "${{ matrix.archive-name }}" LICENSE README.md sgf-render
+            tar -czf "${{ matrix.archive-name }}" LICENSE README.md rust-action
           fi
       - name: Upload archive
         uses: actions/upload-artifact@v4
