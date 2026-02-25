@@ -112,12 +112,12 @@ jobs:
           # files: downloaded_artifacts/**/*.tar.gz
           
           # 如果 windows 的 .7z 也需要上传，可以追加一行或使用更宽泛的通配符：
-          files: |
-            downloaded_artifacts/**/*.tar.gz
-            downloaded_artifacts/**/*.7z
+          # files: |
+          #   downloaded_artifacts/**/*.tar.gz
+          #   downloaded_artifacts/**/*.7z
           
           # 或者直接使用 **/* 上传所有文件（如果目录下只有这些包）
-          # files: downloaded_artifacts/**/*
+          files: downloaded_artifacts/**/*
           
           name: Release ${{ github.ref_name }}
           draft: false
