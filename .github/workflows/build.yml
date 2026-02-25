@@ -27,16 +27,17 @@ jobs:
       fail-fast: false
 
     steps:
-      # 1. 升级 checkout 到 v4
+      # 升级 checkout 到 v4
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. 使用 actions-rs/setup-rust@v1 替代旧的 toolchain
-      # 它是 actions-rs/toolchain 的继任者，支持新版 Actions 命令
+      # 使用 actions-rs/toolchain 的 v2 版本，它修复了弃用问题
       - name: Install Rust
-        uses: actions-rs/setup-rust@v1
+        uses: actions-rs/toolchain@v2
         with:
           toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
           target: ${{ matrix.target }}
 
       - name: Build binary
@@ -62,7 +63,7 @@ jobs:
             tar -czf "${{ matrix.archive-name }}" LICENSE README.md sgf-render
           fi
       
-      # 3. 升级 upload-artifact 到 v4
+      # 升级 upload-artifact 到 v4
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
